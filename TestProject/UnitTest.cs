@@ -36,11 +36,25 @@ namespace TestProject
 
         public void RunTest(string filePath)
         {
-            BitCompressor.Program.Main(new string[] { "e", filePath, filePath + ".bin" });
-            BitCompressor.Program.Main(new string[] { "d", filePath + ".bin", filePath+ ".bin.decompressed" });
-            Assert.True(Utils.FilesAreEqual(filePath, filePath + ".bin.decompressed"));
-            File.Delete(filePath + ".bin");
-            File.Delete(filePath + ".bin.decompressed");
+            string orig = filePath;
+            string encoded = filePath + ".bin";
+            string decoded = filePath + ".bin.decompressed";
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            BitCompressor.Program.Main(new string[] { "e", orig, encoded });
+            var compressionTime = sw.ElapsedMilliseconds;
+
+            sw.Restart();
+            BitCompressor.Program.Main(new string[] { "d", encoded, decoded });
+            var decompressionTime = sw.ElapsedMilliseconds;
+
+            Assert.True(Utils.FilesAreEqual(orig, decoded));
+
+            var compressedSize = new FileInfo(encoded).Length;
+            File.Delete(encoded);
+            File.Delete(decoded);
+
+            Utils.WriteResultsToFile(BitCompressor.Program.version, filePath, compressedSize, compressionTime, decompressionTime);
         }
     }
 }

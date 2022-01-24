@@ -6,8 +6,12 @@ namespace BitCompressor
 {
     public class Program
     {
+        public static string version = "v1";
+
         static void HowToUse()
         {
+            Console.WriteLine("BitCompressor " + version);
+            Console.WriteLine();
             Console.WriteLine("Encodes a file bit by bit using an arithmetic encoder with a static bit probability");
             Console.WriteLine();
             Console.WriteLine("Usage: BitCompressor.exe [e|d] input output");
