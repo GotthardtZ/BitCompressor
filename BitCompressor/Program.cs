@@ -6,7 +6,7 @@ namespace BitCompressor
 {
     public class Program
     {
-        public static string version = "v3";
+        public static string version = "v4";
 
         static void HowToUse()
         {
@@ -68,27 +68,30 @@ namespace BitCompressor
             uint filesize = (uint)input.Length;
             bw.Write(filesize);
 
-            Stat[] stats = new Stat[255];
+            Stat[] stats = new Stat[255 * 256];
             for (int i = 0; i < stats.Length; i++)
                 stats[i] = new Stat();
 
+            uint c1 = 0;
             for (int i = 0; i < filesize; i++)
             {
                 byte b = input[i];
                 uint c0 = 1;
                 for (int j = 7; j >= 0; j--)
                 {
-                    var p1 = stats[c0 - 1].p;
+                    uint context = (c0 - 1) << 8 | c1;
+                    var p1 = stats[context].p;
                     uint p = (uint)(p1 * M);
                     if (p == 0) p = 1;
 
                     uint bit = (uint)(b >> j) & 1;
                     encoder.Encode(bit, p);
 
-                    stats[c0 - 1].Update(bit);
+                    stats[context].Update(bit);
                     c0 <<= 1;
                     c0 += bit;
                 }
+                c1 = b; //c0 works, too
             }
             encoder.Flush();
             ms.Flush();
@@ -103,27 +106,30 @@ namespace BitCompressor
             uint origFileSize = br.ReadUInt32();
             Decoder decoder = new Decoder(br);
 
-            Stat[] stats = new Stat[255];
+            Stat[] stats = new Stat[255 * 256];
             for (int i = 0; i < stats.Length; i++)
                 stats[i] = new Stat();
 
             byte b = 0;
+            byte c1 = 0;
             for (int i = 0; i < origFileSize; i++)
             {
                 uint c0 = 1;
                 for (int j = 7; j >= 0; j--)
                 {
-                    var p1 = stats[c0 - 1].p;
+                    uint context = (c0 - 1) << 8 | c1;
+                    var p1 = stats[context].p;
                     uint p = (uint)(p1 * M);
                     if (p == 0) p = 1;
 
                     uint bit = decoder.Decode(p);
                     b = (byte)((b << 1) | bit);
 
-                    stats[c0 - 1].Update(bit);
+                    stats[context].Update(bit);
                     c0 <<= 1;
                     c0 += bit;
                 }
+                c1 = b; //c0 works, too
                 writer.WriteByte(b);
             }
             return writer.ToArray();
