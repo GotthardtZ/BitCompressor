@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.31515.178
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitCompressor", "BitCompressor\BitCompressor.csproj", "{182D4527-7410-4D60-BD10-B088BCE43689}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestProject", "TestProject\TestProject.csproj", "{5D4AF85D-5028-457B-80E6-B3585F79C0A4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{182D4527-7410-4D60-BD10-B088BCE43689}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{182D4527-7410-4D60-BD10-B088BCE43689}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{182D4527-7410-4D60-BD10-B088BCE43689}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D4AF85D-5028-457B-80E6-B3585F79C0A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D4AF85D-5028-457B-80E6-B3585F79C0A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D4AF85D-5028-457B-80E6-B3585F79C0A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D4AF85D-5028-457B-80E6-B3585F79C0A4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

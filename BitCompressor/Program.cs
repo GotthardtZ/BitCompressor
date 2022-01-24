@@ -4,7 +4,7 @@ using System.IO;
 
 namespace BitCompressor
 {
-    class Program
+    public class Program
     {
         static void HowToUse()
         {
@@ -15,7 +15,7 @@ namespace BitCompressor
             Console.WriteLine(" - d: to dedode");
         }
 
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             if (args.Length != 3)
             {
