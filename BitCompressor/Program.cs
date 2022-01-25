@@ -6,7 +6,7 @@ namespace BitCompressor
 {
     public class Program
     {
-        public static string version = "v5";
+        public static string version = "v6";
 
         static void HowToUse()
         {
@@ -69,8 +69,6 @@ namespace BitCompressor
             bw.Write(filesize);
 
             Stat[] stats = new Stat[255 * 256 * 256];
-            for (int i = 0; i < stats.Length; i++)
-                stats[i] = new Stat();
 
             uint c1 = 0;
             uint c2 = 0;
@@ -109,8 +107,6 @@ namespace BitCompressor
             Decoder decoder = new Decoder(br);
 
             Stat[] stats = new Stat[255 * 256 * 256];
-            for (int i = 0; i < stats.Length; i++)
-                stats[i] = new Stat();
 
             byte b = 0;
             uint c1 = 0;
