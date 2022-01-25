@@ -6,7 +6,7 @@ namespace BitCompressor
 {
     public class Program
     {
-        public static string version = "v4";
+        public static string version = "v5";
 
         static void HowToUse()
         {
@@ -68,18 +68,19 @@ namespace BitCompressor
             uint filesize = (uint)input.Length;
             bw.Write(filesize);
 
-            Stat[] stats = new Stat[255 * 256];
+            Stat[] stats = new Stat[255 * 256 * 256];
             for (int i = 0; i < stats.Length; i++)
                 stats[i] = new Stat();
 
             uint c1 = 0;
+            uint c2 = 0;
             for (int i = 0; i < filesize; i++)
             {
                 byte b = input[i];
                 uint c0 = 1;
                 for (int j = 7; j >= 0; j--)
                 {
-                    uint context = (c0 - 1) << 8 | c1;
+                    uint context = (c0 - 1) << 16 | c1 << 8 | c2;
                     var p1 = stats[context].p;
                     uint p = (uint)(p1 * M);
                     if (p == 0) p = 1;
@@ -91,6 +92,7 @@ namespace BitCompressor
                     c0 <<= 1;
                     c0 += bit;
                 }
+                c2 = c1;
                 c1 = b; //c0 works, too
             }
             encoder.Flush();
@@ -106,18 +108,19 @@ namespace BitCompressor
             uint origFileSize = br.ReadUInt32();
             Decoder decoder = new Decoder(br);
 
-            Stat[] stats = new Stat[255 * 256];
+            Stat[] stats = new Stat[255 * 256 * 256];
             for (int i = 0; i < stats.Length; i++)
                 stats[i] = new Stat();
 
             byte b = 0;
-            byte c1 = 0;
+            uint c1 = 0;
+            uint c2 = 0;
             for (int i = 0; i < origFileSize; i++)
             {
                 uint c0 = 1;
                 for (int j = 7; j >= 0; j--)
                 {
-                    uint context = (c0 - 1) << 8 | c1;
+                    uint context = (c0 - 1) << 16 | c1 << 8 | c2;
                     var p1 = stats[context].p;
                     uint p = (uint)(p1 * M);
                     if (p == 0) p = 1;
@@ -129,6 +132,7 @@ namespace BitCompressor
                     c0 <<= 1;
                     c0 += bit;
                 }
+                c2 = c1;
                 c1 = b; //c0 works, too
                 writer.WriteByte(b);
             }
