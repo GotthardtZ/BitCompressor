@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -70,37 +70,37 @@
     <None Update="BenchmarkFiles\Calgary\trans">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="BenchmarkFiles\Cantenbury\alice29.txt">
+    <None Update="BenchmarkFiles\Canterbury\alice29.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="BenchmarkFiles\Cantenbury\asyoulik.txt">
+    <None Update="BenchmarkFiles\Canterbury\asyoulik.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="BenchmarkFiles\Cantenbury\cp.html">
+    <None Update="BenchmarkFiles\Canterbury\cp.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="BenchmarkFiles\Cantenbury\fields.c">
+    <None Update="BenchmarkFiles\Canterbury\fields.c">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="BenchmarkFiles\Cantenbury\grammar.lsp">
+    <None Update="BenchmarkFiles\Canterbury\grammar.lsp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="BenchmarkFiles\Cantenbury\kennedy.xls">
+    <None Update="BenchmarkFiles\Canterbury\kennedy.xls">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="BenchmarkFiles\Cantenbury\lcet10.txt">
+    <None Update="BenchmarkFiles\Canterbury\lcet10.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="BenchmarkFiles\Cantenbury\plrabn12.txt">
+    <None Update="BenchmarkFiles\Canterbury\plrabn12.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="BenchmarkFiles\Cantenbury\ptt5">
+    <None Update="BenchmarkFiles\Canterbury\ptt5">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="BenchmarkFiles\Cantenbury\sum">
+    <None Update="BenchmarkFiles\Canterbury\sum">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="BenchmarkFiles\Cantenbury\xargs.1">
+    <None Update="BenchmarkFiles\Canterbury\xargs.1">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -22,17 +22,17 @@ namespace TestProject
         [InlineData("BenchmarkFiles/Calgary/progp")]
         [InlineData("BenchmarkFiles/Calgary/trans")]
 
-        [InlineData("BenchmarkFiles/Cantenbury/alice29.txt")]
-        [InlineData("BenchmarkFiles/Cantenbury/asyoulik.txt")]
-        [InlineData("BenchmarkFiles/Cantenbury/cp.html")]
-        [InlineData("BenchmarkFiles/Cantenbury/fields.c")]
-        [InlineData("BenchmarkFiles/Cantenbury/grammar.lsp")]
-        [InlineData("BenchmarkFiles/Cantenbury/kennedy.xls")]
-        [InlineData("BenchmarkFiles/Cantenbury/lcet10.txt")]
-        [InlineData("BenchmarkFiles/Cantenbury/plrabn12.txt")]
-        [InlineData("BenchmarkFiles/Cantenbury/ptt5")]
-        [InlineData("BenchmarkFiles/Cantenbury/sum")]
-        [InlineData("BenchmarkFiles/Cantenbury/xargs.1")]
+        [InlineData("BenchmarkFiles/Canterbury/alice29.txt")]
+        [InlineData("BenchmarkFiles/Canterbury/asyoulik.txt")]
+        [InlineData("BenchmarkFiles/Canterbury/cp.html")]
+        [InlineData("BenchmarkFiles/Canterbury/fields.c")]
+        [InlineData("BenchmarkFiles/Canterbury/grammar.lsp")]
+        [InlineData("BenchmarkFiles/Canterbury/kennedy.xls")]
+        [InlineData("BenchmarkFiles/Canterbury/lcet10.txt")]
+        [InlineData("BenchmarkFiles/Canterbury/plrabn12.txt")]
+        [InlineData("BenchmarkFiles/Canterbury/ptt5")]
+        [InlineData("BenchmarkFiles/Canterbury/sum")]
+        [InlineData("BenchmarkFiles/Canterbury/xargs.1")]
 
         public void RunTest(string filePath)
         {
