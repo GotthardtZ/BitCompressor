@@ -17,7 +17,7 @@
         uint context1 = 0;
         uint context2 = 0;
         uint context3 = 0;
-        string word = "";
+        uint wordhash = 0;
 
         double w0 = 0;
         double w1 = 0;
@@ -40,7 +40,7 @@
             context0 = (c0 - 1);
             context1 = (c0 - 1) << 8 | c1;
             context2 = (c0 - 1) << 16 | c1 << 8 | c2;
-            context3 = (c0 - 1) << 16 | (word.Hash() & 0xffff);
+            context3 = (c0 - 1) << 16 | (wordhash & 0xffff);
         }
 
         public double p()
@@ -80,11 +80,11 @@
 
             if (sharedState.bitpos == 0)
             {
-                char c1 = (char)sharedState.c1;
-                if (char.IsLetter(c1))
-                    word += c1;
+                byte c1 = sharedState.c1;
+                if (char.IsLetter((char)c1))
+                    wordhash = wordhash.Hash(c1);
                 else
-                    word = "";
+                    wordhash = 0;
             }
 
             //update mixing weights
