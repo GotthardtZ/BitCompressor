@@ -6,7 +6,7 @@ namespace BitCompressor
 {
     public class Program
     {
-        public static string version = "v6";
+        public static string version = "v7";
 
         static void HowToUse()
         {
@@ -68,7 +68,9 @@ namespace BitCompressor
             uint filesize = (uint)input.Length;
             bw.Write(filesize);
 
-            Stat[] stats = new Stat[255 * 256 * 256];
+            Stat[] stats0 = new Stat[255];
+            Stat[] stats1 = new Stat[255 * 256];
+            Stat[] stats2 = new Stat[255 * 256 * 256];
 
             uint c1 = 0;
             uint c2 = 0;
@@ -78,15 +80,27 @@ namespace BitCompressor
                 uint c0 = 1;
                 for (int j = 7; j >= 0; j--)
                 {
-                    uint context = (c0 - 1) << 16 | c1 << 8 | c2;
-                    var p1 = stats[context].p;
-                    uint p = (uint)(p1 * M);
+                    uint context0 = (c0 - 1);
+                    uint context1 = (c0 - 1) << 8 | c1;
+                    uint context2 = (c0 - 1) << 16 | c1 << 8 | c2;
+                    var p0 = stats0[context0].p;
+                    var p1 = stats1[context1].p;
+                    var p2 = stats2[context2].p;
+
+                    var px =
+                        stats2[context2].IsMature ? p2 :
+                        stats1[context1].IsMature ? p1 : p0;
+
+                    uint p = (uint)(px * M);
                     if (p == 0) p = 1;
 
                     uint bit = (uint)(b >> j) & 1;
                     encoder.Encode(bit, p);
 
-                    stats[context].Update(bit);
+                    stats0[context0].Update(bit);
+                    stats1[context1].Update(bit);
+                    stats2[context2].Update(bit);
+
                     c0 <<= 1;
                     c0 += bit;
                 }
@@ -106,7 +120,9 @@ namespace BitCompressor
             uint origFileSize = br.ReadUInt32();
             Decoder decoder = new Decoder(br);
 
-            Stat[] stats = new Stat[255 * 256 * 256];
+            Stat[] stats0 = new Stat[255];
+            Stat[] stats1 = new Stat[255 * 256];
+            Stat[] stats2 = new Stat[255 * 256 * 256];
 
             byte b = 0;
             uint c1 = 0;
@@ -117,14 +133,27 @@ namespace BitCompressor
                 for (int j = 7; j >= 0; j--)
                 {
                     uint context = (c0 - 1) << 16 | c1 << 8 | c2;
-                    var p1 = stats[context].p;
-                    uint p = (uint)(p1 * M);
+                    uint context0 = (c0 - 1);
+                    uint context1 = (c0 - 1) << 8 | c1;
+                    uint context2 = (c0 - 1) << 16 | c1 << 8 | c2;
+                    var p0 = stats0[context0].p;
+                    var p1 = stats1[context1].p;
+                    var p2 = stats2[context2].p;
+
+                    var px =
+                        stats2[context2].IsMature ? p2 :
+                        stats1[context1].IsMature ? p1 : p0;
+
+                    uint p = (uint)(px * M);
                     if (p == 0) p = 1;
 
                     uint bit = decoder.Decode(p);
                     b = (byte)((b << 1) | bit);
 
-                    stats[context].Update(bit);
+                    stats0[context0].Update(bit);
+                    stats1[context1].Update(bit);
+                    stats2[context2].Update(bit);
+
                     c0 <<= 1;
                     c0 += bit;
                 }
