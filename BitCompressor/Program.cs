@@ -6,7 +6,7 @@ namespace BitCompressor
 {
     public class Program
     {
-        public static string version = "v8";
+        public static string version = "v9";
 
         static void HowToUse()
         {
@@ -68,54 +68,25 @@ namespace BitCompressor
             uint filesize = (uint)input.Length;
             bw.Write(filesize);
 
-            Stat[] stats0 = new Stat[255];
-            Stat[] stats1 = new Stat[255 * 256];
-            Stat[] stats2 = new Stat[255 * 256 * 256];
-            Stat[] stats3 = new Stat[255 * 256 * 256];
+            var sharedState = new SharedState();
+            var model = new ProbabilityModel(sharedState);
 
-            uint c1 = 0;
-            uint c2 = 0;
-            string word = "";
             for (int i = 0; i < filesize; i++)
             {
                 byte b = input[i];
-                uint c0 = 1;
                 for (int j = 7; j >= 0; j--)
                 {
-                    uint context0 = (c0 - 1);
-                    uint context1 = (c0 - 1) << 8 | c1;
-                    uint context2 = (c0 - 1) << 16 | c1 << 8 | c2;
-                    uint context3 = (c0 - 1) << 16 | (word.Hash() & 0xffff);
-                    var p0 = stats0[context0].p;
-                    var p1 = stats1[context1].p;
-                    var p2 = stats2[context2].p;
-                    var p3 = stats3[context3].p;
-
-                    var px =
-                        stats3[context3].IsCertain ? p3 :
-                        stats2[context2].IsMature ? p2 :
-                        stats1[context1].IsMature ? p1 : p0;
-
-                    uint p = (uint)(px * M);
+                    model.SetContexts();
+                    var p1 = model.p();
+                    uint p = (uint)(p1 * M);
                     if (p == 0) p = 1;
 
                     uint bit = (uint)(b >> j) & 1;
                     encoder.Encode(bit, p);
 
-                    stats0[context0].Update(bit);
-                    stats1[context1].Update(bit);
-                    stats2[context2].Update(bit);
-                    stats3[context3].Update(bit);
-
-                    c0 <<= 1;
-                    c0 += bit;
+                    sharedState.UpdateState(bit);
+                    model.UpdateModel(bit);
                 }
-                if (char.IsLetter((char)b))
-                    word += (char)b;
-                else 
-                    word = "";
-                c2 = c1;
-                c1 = b; //c0 works, too
             }
             encoder.Flush();
             ms.Flush();
@@ -130,55 +101,24 @@ namespace BitCompressor
             uint origFileSize = br.ReadUInt32();
             Decoder decoder = new Decoder(br);
 
-            Stat[] stats0 = new Stat[255];
-            Stat[] stats1 = new Stat[255 * 256];
-            Stat[] stats2 = new Stat[255 * 256 * 256];
-            Stat[] stats3 = new Stat[255 * 256 * 256];
+            var sharedState = new SharedState();
+            var model = new ProbabilityModel(sharedState);
 
-            byte b = 0;
-            uint c1 = 0;
-            uint c2 = 0;
-            string word = "";
             for (int i = 0; i < origFileSize; i++)
             {
-                uint c0 = 1;
                 for (int j = 7; j >= 0; j--)
                 {
-                    uint context0 = (c0 - 1);
-                    uint context1 = (c0 - 1) << 8 | c1;
-                    uint context2 = (c0 - 1) << 16 | c1 << 8 | c2;
-                    uint context3 = (c0 - 1) << 16 | (word.Hash() & 0xffff);
-                    var p0 = stats0[context0].p;
-                    var p1 = stats1[context1].p;
-                    var p2 = stats2[context2].p;
-                    var p3 = stats3[context3].p;
-
-                    var px =
-                        stats3[context3].IsCertain ? p3 :
-                        stats2[context2].IsMature ? p2 :
-                        stats1[context1].IsMature ? p1 : p0;
-
-                    uint p = (uint)(px * M);
+                    model.SetContexts();
+                    var p1 = model.p();
+                    uint p = (uint)(p1 * M);
                     if (p == 0) p = 1;
 
                     uint bit = decoder.Decode(p);
-                    b = (byte)((b << 1) | bit);
 
-                    stats0[context0].Update(bit);
-                    stats1[context1].Update(bit);
-                    stats2[context2].Update(bit);
-                    stats3[context3].Update(bit);
-
-                    c0 <<= 1;
-                    c0 += bit;
+                    sharedState.UpdateState(bit);
+                    model.UpdateModel(bit);
                 }
-                if (char.IsLetter((char)b))
-                    word += (char)b;
-                else
-                    word = "";
-                c2 = c1;
-                c1 = b; //c0 works, too
-                writer.WriteByte(b);
+                writer.WriteByte(sharedState.c1);
             }
             return writer.ToArray();
         }
