@@ -4,6 +4,8 @@ namespace BitCompressor
 {
     class ProbabilityModel
     {
+        enum TokenType { Word, Number, Other}
+
         readonly SharedState sharedState;
         public ProbabilityModel(SharedState sharedState)
         {
@@ -21,7 +23,8 @@ namespace BitCompressor
         uint context1 = 0;
         uint context2 = 0;
         uint context3 = 0;
-        uint wordhash = 0;
+        TokenType tokenType;
+        uint tokenHash = 0;
 
         //model weights
         double w0 = 0;
@@ -46,7 +49,7 @@ namespace BitCompressor
             context0 = (c0 - 1);
             context1 = (c0 - 1) << 8 | c1;
             context2 = (c0 - 1) << 16 | c1 << 8 | c2;
-            context3 = (c0 - 1) << 16 | (wordhash & 0xffff);
+            context3 = (c0 - 1) << 16 | (tokenHash & 0xffff);
         }
 
         private void printChar(byte b)
@@ -129,10 +132,16 @@ namespace BitCompressor
             if (sharedState.bitpos == 0)
             {
                 byte c1 = sharedState.c1;
-                if (char.IsLetter((char)c1))
-                    wordhash = wordhash.Hash(c1);
-                else
-                    wordhash = 0;
+                var thisTokenType =
+                    ((c1 >= 'A' && c1 <= 'Z') || (c1 >= 'a' && c1 <= 'z') || c1>=128) ? TokenType.Word :
+                    c1 >= '0' && c1 <= '9' ? TokenType.Number:
+                    TokenType.Other;
+                if (thisTokenType != tokenType)
+                {
+                    tokenType = thisTokenType;
+                    tokenHash = 0;
+                }
+                tokenHash = tokenHash.Hash(c1);
             }
 
             //update mixing weights
