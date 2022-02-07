@@ -11,7 +11,7 @@
 
         public void UpdateState(uint bit)
         {
-            bit = (byte)bit;
+            this.bit = (byte)bit;
             c0 = (byte)((uint)c0 << 1 | bit);
             bitpos = (byte)((bitpos + 1) & 7);
             if (bitpos == 0) {
