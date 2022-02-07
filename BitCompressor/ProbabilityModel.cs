@@ -26,17 +26,9 @@ namespace BitCompressor
         TokenType tokenType;
         uint tokenHash = 0;
 
-        //model weights
-        double w0 = 0;
-        double w1 = 0;
-        double w2 = 0;
-        double w3 = 0;
-
-        //stretched probabilities
-        double d0 = 0;
-        double d1 = 0;
-        double d2 = 0;
-        double d3 = 0;
+        double[,] weights = new double[64, 4]; //model weights
+        double[] stretchedInputs = new double[4]; //stretched probabilities
+        int selectedWeightSet = 0;
 
         double px = 0.5;
 
@@ -66,7 +58,7 @@ namespace BitCompressor
                 Console.Write(bit);
             }
         }
-        private void printState(SharedState sharedState, double p0, double p1, double p2, double p3)
+        private void printState(SharedState sharedState, double p0, double p1, double p2, double p3, double w0, double w1, double w2, double w3)
         {
             //end of previous line
             Console.WriteLine(sharedState.bit);
@@ -86,7 +78,7 @@ namespace BitCompressor
 
             Console.Write(
                 sharedState.bitpos +
-                String.Format(" w0={0:+#0.000} w1={1:+#0.000} w2={2:+#0.000} w3={3:+#0.000}   |  ", w0, w1, w2, w3) +
+                String.Format(" w0={0:+#0.000;-#0.000; #0.000} w1={1:+#0.000;-#0.000; #0.000} w2={2:+#0.000;-#0.000; #0.000} w3={3:+#0.000;-#0.000; #0.000}   |  ", w0, w1, w2, w3) +
                 String.Format(" p0={0:0.000} p1={1:0.000} p2={2:0.000} p3={3:0.000} px={4:0.0000000} ", p0, p1, p2, p3, px)
                 );
 
@@ -98,19 +90,34 @@ namespace BitCompressor
             var p2 = stats2[context2].p;
             var p3 = stats3[context3].p;
 
-            d0 = MixerFunctions.Stretch(p0); // typical d range: -8.3 .. 0.0 .. +8.3 when p is between 1/4096 and 4095/4096 
-            d1 = MixerFunctions.Stretch(p1);
-            d2 = MixerFunctions.Stretch(p2);
-            d3 = MixerFunctions.Stretch(p3);
+            var d0 = MixerFunctions.Stretch(p0); // typical d range: -8.3 .. 0.0 .. +8.3 when p is between 1/4096 and 4095/4096 
+            var d1 = MixerFunctions.Stretch(p1);
+            var d2 = MixerFunctions.Stretch(p2);
+            var d3 = MixerFunctions.Stretch(p3);
+
+            selectedWeightSet =
+                stats1[context1].StatCertainty << 0 |
+                stats2[context2].StatCertainty << 2 |
+                stats3[context3].StatCertainty << 4;
+            
+            var w0 = weights[selectedWeightSet, 0];
+            var w1 = weights[selectedWeightSet, 1];
+            var w2 = weights[selectedWeightSet, 2];
+            var w3 = weights[selectedWeightSet, 3];
 
             const double scalingFactor = 0.2; //tunable parameter
             var dotProduct = (w0 * d0) + (w1 * d1) + (w2 * d2) + (w3 * d3);
             dotProduct *= scalingFactor;
-            
+
+            stretchedInputs[0] = d0;
+            stretchedInputs[1] = d1;
+            stretchedInputs[2] = d2;
+            stretchedInputs[3] = d3;
+
             px = MixerFunctions.Squash(dotProduct);
 
             //uncomment the following line to print state bit by bit
-            //printState(sharedState, p0, p1, p2, p3);
+            //printState(sharedState, p0, p1, p2, p3, w0, w1, w2, w3);
 
             return px;
         }
@@ -133,8 +140,8 @@ namespace BitCompressor
             {
                 byte c1 = sharedState.c1;
                 var thisTokenType =
-                    ((c1 >= 'A' && c1 <= 'Z') || (c1 >= 'a' && c1 <= 'z') || c1>=128) ? TokenType.Word :
-                    c1 >= '0' && c1 <= '9' ? TokenType.Number:
+                    ((c1 >= 'A' && c1 <= 'Z') || (c1 >= 'a' && c1 <= 'z') || c1 >= 128) ? TokenType.Word :
+                    c1 >= '0' && c1 <= '9' ? TokenType.Number :
                     TokenType.Other;
                 if (thisTokenType != tokenType)
                 {
@@ -149,15 +156,26 @@ namespace BitCompressor
             var error = bit - px; //target probability vs predicted probability
 
             const double learningRate = 0.02; //tunable parameter
-            w0 += d0 * error * learningRate;  //the larger the error - the larger of the weight change
+
+            var d0 = stretchedInputs[0];
+            var d1 = stretchedInputs[1];
+            var d2 = stretchedInputs[2];
+            var d3 = stretchedInputs[3];
+
+            var w0 = weights[selectedWeightSet, 0];
+            var w1 = weights[selectedWeightSet, 1];
+            var w2 = weights[selectedWeightSet, 2];
+            var w3 = weights[selectedWeightSet, 3];
+
+            w0 += d0 * error * learningRate; //the larger the error - the larger of the weight change
             w1 += d1 * error * learningRate;
             w2 += d2 * error * learningRate;
             w3 += d3 * error * learningRate;
 
-            w0 = Clip(w0);
-            w1 = Clip(w1);
-            w2 = Clip(w2);
-            w3 = Clip(w3);
+            weights[selectedWeightSet, 0] = Clip(w0);
+            weights[selectedWeightSet, 1] = Clip(w1);
+            weights[selectedWeightSet, 2] = Clip(w2);
+            weights[selectedWeightSet, 3] = Clip(w3);
         }
     }
 }

@@ -10,7 +10,10 @@
             n0 += bit == 0 ? 1u : 0u;
             n1 += bit == 1 ? 1u : 0u;
         }
-        public bool IsMature => n0 + n1 >= 5; // we encounteder this context at least 5 times
-        public bool IsCertain => n0 + n1 >= 5 && (n0 == 0 || n1 == 0); //mature statistics with a strong trend of only zeroes or ones so far
+        public int StatCertainty =>
+            (n0 + n1 == 0) ? 0 : // we haven't encountered this context yet
+            (n0 == 0 || n1 == 0) ? 1 : // trend of only 0s or 1s
+            (n0 + n1 >= 16) ? 2 : // we encounteder this context many times already            3; //otherwise
+            3; //otherwise
     }
 }
