@@ -10,6 +10,10 @@ namespace BitCompressor
         public ProbabilityModel(SharedState sharedState)
         {
             this.sharedState = sharedState;
+            stats[0] = stats0;
+            stats[1] = stats1;
+            stats[2] = stats2;
+            stats[3] = stats3;
         }
 
         //context statistics
@@ -17,12 +21,14 @@ namespace BitCompressor
         Stat[] stats1 = new Stat[255 * 256];
         Stat[] stats2 = new Stat[255 * 256 * 256];
         Stat[] stats3 = new Stat[255 * 256 * 256];
+        Stat[][] stats = new Stat[4][];
 
         //model contexts
-        uint context0 = 0;
-        uint context1 = 0;
-        uint context2 = 0;
-        uint context3 = 0;
+        //0: order-0 context (bits in the current byte)
+        //1: order-1 context (bits in the current byte + previous byte)
+        //2: order-3 context (bits in the current byte + previous 2 bytes)
+        //3: token context   (variable length context to model words and word gaps)
+        uint[] contexts = new uint[4];
         TokenType tokenType;
         uint tokenHash = 0;
 
@@ -38,10 +44,10 @@ namespace BitCompressor
             uint c1 = sharedState.c1;
             uint c2 = sharedState.c2;
 
-            context0 = (c0 - 1);
-            context1 = (c0 - 1) << 8 | c1;
-            context2 = (c0 - 1) << 16 | c1 << 8 | c2;
-            context3 = (c0 - 1) << 16 | (tokenHash & 0xffff);
+            contexts[0] = (c0 - 1);
+            contexts[1] = (c0 - 1) << 8 | c1;
+            contexts[2] = (c0 - 1) << 16 | c1 << 8 | c2;
+            contexts[3] = (c0 - 1) << 16 | (tokenHash & 0xffff);
         }
 
         private void printChar(byte b)
@@ -85,35 +91,24 @@ namespace BitCompressor
         }
         public double p()
         {
-            var p0 = stats0[context0].p; //p range: 0.0 .. 0.5 .. 1.0, excluding the ends (0.0 and 1.0)
-            var p1 = stats1[context1].p;
-            var p2 = stats2[context2].p;
-            var p3 = stats3[context3].p;
-
-            var d0 = MixerFunctions.Stretch(p0); // typical d range: -8.3 .. 0.0 .. +8.3 when p is between 1/4096 and 4095/4096 
-            var d1 = MixerFunctions.Stretch(p1);
-            var d2 = MixerFunctions.Stretch(p2);
-            var d3 = MixerFunctions.Stretch(p3);
-
             selectedWeightSet =
-                stats1[context1].StatCertainty << 0 |
-                stats2[context2].StatCertainty << 2 |
-                stats3[context3].StatCertainty << 4;
-            
-            var w0 = weights[selectedWeightSet, 0];
-            var w1 = weights[selectedWeightSet, 1];
-            var w2 = weights[selectedWeightSet, 2];
-            var w3 = weights[selectedWeightSet, 3];
+                stats1[contexts[1]].StatCertainty << 0 |
+                stats2[contexts[2]].StatCertainty << 2 |
+                stats3[contexts[3]].StatCertainty << 4;
+
+            double dotProduct = 0.0;
+            for (int i = 0; i < 4; i++)
+            {
+                var stat = stats[i][contexts[i]];
+                var p = stat.p; //p range: 0.0 .. 0.5 .. 1.0, excluding the ends (0.0 and 1.0)
+                var d = MixerFunctions.Stretch(p); // typical d range: -8.3 .. 0.0 .. +8.3 when p is between 1/4096 and 4095/4096 
+                var w = weights[selectedWeightSet, i];
+                dotProduct += (w * d);
+                stretchedInputs[i] = d;
+            }
 
             const double scalingFactor = 0.2; //tunable parameter
-            var dotProduct = (w0 * d0) + (w1 * d1) + (w2 * d2) + (w3 * d3);
             dotProduct *= scalingFactor;
-
-            stretchedInputs[0] = d0;
-            stretchedInputs[1] = d1;
-            stretchedInputs[2] = d2;
-            stretchedInputs[3] = d3;
-
             px = MixerFunctions.Squash(dotProduct);
 
             //uncomment the following line to print state bit by bit
@@ -131,11 +126,7 @@ namespace BitCompressor
 
         public void UpdateModel(uint bit)
         {
-            stats0[context0].Update(bit);
-            stats1[context1].Update(bit);
-            stats2[context2].Update(bit);
-            stats3[context3].Update(bit);
-
+            //update state for tokenmodel
             if (sharedState.bitpos == 0)
             {
                 byte c1 = sharedState.c1;
@@ -157,25 +148,14 @@ namespace BitCompressor
 
             const double learningRate = 0.02; //tunable parameter
 
-            var d0 = stretchedInputs[0];
-            var d1 = stretchedInputs[1];
-            var d2 = stretchedInputs[2];
-            var d3 = stretchedInputs[3];
-
-            var w0 = weights[selectedWeightSet, 0];
-            var w1 = weights[selectedWeightSet, 1];
-            var w2 = weights[selectedWeightSet, 2];
-            var w3 = weights[selectedWeightSet, 3];
-
-            w0 += d0 * error * learningRate; //the larger the error - the larger of the weight change
-            w1 += d1 * error * learningRate;
-            w2 += d2 * error * learningRate;
-            w3 += d3 * error * learningRate;
-
-            weights[selectedWeightSet, 0] = Clip(w0);
-            weights[selectedWeightSet, 1] = Clip(w1);
-            weights[selectedWeightSet, 2] = Clip(w2);
-            weights[selectedWeightSet, 3] = Clip(w3);
+            for (int i = 0; i < 4; i++)
+            {
+                var d = stretchedInputs[i];
+                var w = weights[selectedWeightSet, i];
+                w += d * error * learningRate; //the larger the error - the larger of the weight change
+                weights[selectedWeightSet, i] = Clip(w);
+                stats[i][contexts[i]].Update(bit);
+            }
         }
     }
 }
