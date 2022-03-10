@@ -20,7 +20,7 @@ namespace BitCompressor
         Stat[] stats0 = new Stat[255];
         Stat[] stats1 = new Stat[255 * 256];
         Stat[] stats2 = new Stat[255 * 256 * 256];
-        Stat[] stats3 = new Stat[255 * 256 * 256];
+        Stat[] stats3 = new Stat[256 * 256 * 256];
         Stat[][] stats = new Stat[4][];
 
         //model contexts
@@ -30,7 +30,7 @@ namespace BitCompressor
         //3: token context   (variable length context to model words and word gaps)
         uint[] contexts = new uint[4];
         TokenType tokenType;
-        uint tokenHash = 0;
+        ulong tokenHash = 0;
 
         double[,] weights = new double[64, 4]; //model weights
         double[] stretchedInputs = new double[4]; //stretched probabilities
@@ -47,7 +47,7 @@ namespace BitCompressor
             contexts[0] = (c0 - 1);
             contexts[1] = (c0 - 1) << 8 | c1;
             contexts[2] = (c0 - 1) << 16 | c1 << 8 | c2;
-            contexts[3] = (c0 - 1) << 16 | (tokenHash & 0xffff);
+            contexts[3] = tokenHash.Hash((byte)c0).FinalizeHash(24);
         }
 
         private void printChar(byte b)
