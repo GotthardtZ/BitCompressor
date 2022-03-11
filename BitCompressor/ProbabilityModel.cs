@@ -10,30 +10,33 @@ namespace BitCompressor
         public ProbabilityModel(SharedState sharedState)
         {
             this.sharedState = sharedState;
-            stats[0] = stats0;
-            stats[1] = stats1;
-            stats[2] = stats2;
-            stats[3] = stats3;
+            stats[0] = stats0; //order-0 context
+            stats[1] = stats1; //order-1 context
+            stats[2] = stats2; //order-2 context
+            stats[3] = stats3; //order-3 context
+            stats[4] = stats4; //token context
         }
 
         //context statistics
-        Stat[] stats0 = new Stat[255];
-        Stat[] stats1 = new Stat[255 * 256];
-        Stat[] stats2 = new Stat[255 * 256 * 256];
-        Stat[] stats3 = new Stat[256 * 256 * 256];
-        Stat[][] stats = new Stat[4][];
+        Stat[] stats0 = new Stat[255]; //2KB
+        Stat[] stats1 = new Stat[255 * 256]; //512k
+        Stat[] stats2 = new Stat[255 * 256 * 256]; //132MB
+        Stat[] stats3 = new Stat[256 * 256 * 256]; //132MB
+        Stat[] stats4 = new Stat[256 * 256 * 256]; //132MB
+        Stat[][] stats = new Stat[5][];
 
         //model contexts
         //0: order-0 context (bits in the current byte)
         //1: order-1 context (bits in the current byte + previous byte)
-        //2: order-3 context (bits in the current byte + previous 2 bytes)
-        //3: token context   (variable length context to model words and word gaps)
-        uint[] contexts = new uint[4];
+        //2: order-2 context (bits in the current byte + previous 2 bytes)
+        //3: order-3 context (bits in the current byte + previous 3 bytes)
+        //4: token context   (variable length context to model words and word gaps)
+        uint[] contexts = new uint[5];
         TokenType tokenType;
         ulong tokenHash = 0;
 
-        double[,] weights = new double[64, 4]; //model weights
-        double[] stretchedInputs = new double[4]; //stretched probabilities
+        double[,] weights = new double[4 * 4 * 4 * 4, 5]; //model weights in 4*4*4*4 = 256 weight sets
+        double[] stretchedInputs = new double[5]; //stretched probabilities
         int selectedWeightSet = 0;
 
         double px = 0.5;
@@ -43,11 +46,13 @@ namespace BitCompressor
             uint c0 = sharedState.c0;
             uint c1 = sharedState.c1;
             uint c2 = sharedState.c2;
+            uint c3 = sharedState.c3;
 
             contexts[0] = (c0 - 1);
             contexts[1] = (c0 - 1) << 8 | c1;
             contexts[2] = (c0 - 1) << 16 | c1 << 8 | c2;
-            contexts[3] = tokenHash.Hash((byte)c0).FinalizeHash(24);
+            contexts[3] = ((ulong)c0).Hash((byte)c1).Hash((byte)c2).Hash((byte)c3).FinalizeHash(24);
+            contexts[4] = tokenHash.Hash((byte)c0).FinalizeHash(24);
         }
 
         private void printChar(byte b)
@@ -94,10 +99,11 @@ namespace BitCompressor
             selectedWeightSet =
                 stats1[contexts[1]].StatCertainty << 0 |
                 stats2[contexts[2]].StatCertainty << 2 |
-                stats3[contexts[3]].StatCertainty << 4;
+                stats3[contexts[3]].StatCertainty << 4 |
+                stats4[contexts[4]].StatCertainty << 6; //256 weight sets
 
             double dotProduct = 0.0;
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 5; i++)
             {
                 var stat = stats[i][contexts[i]];
                 var p = stat.p; //p range: 0.0 .. 0.5 .. 1.0, excluding the ends (0.0 and 1.0)
@@ -107,7 +113,7 @@ namespace BitCompressor
                 stretchedInputs[i] = d;
             }
 
-            const double scalingFactor = 0.2; //tunable parameter
+            const double scalingFactor = 0.3; //tunable parameter
             dotProduct *= scalingFactor;
             px = MixerFunctions.Squash(dotProduct);
 
@@ -148,7 +154,7 @@ namespace BitCompressor
 
             const double learningRate = 0.02; //tunable parameter
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 5; i++)
             {
                 var d = stretchedInputs[i];
                 var w = weights[selectedWeightSet, i];
