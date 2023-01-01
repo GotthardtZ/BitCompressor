@@ -6,7 +6,7 @@ namespace BitCompressor
 {
     public class Program
     {
-        public static string version = "v17";
+        public static string version = "v18";
 
         static void HowToUse()
         {
