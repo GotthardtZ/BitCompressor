@@ -56,11 +56,12 @@ namespace BitCompressor
         TokenType tokenType;
         ulong tokenHash = 0;
 
-        double[,] weights = new double[4 * 4 * 4 * 4, 5 + 5]; //model weights in 4*4*4*4 = 256 weight sets
-        double[] stretchedInputs = new double[5 + 5]; //stretched probabilities
-        int selectedWeightSet = 0;
-
-        double px = 0.5; //final probability
+        Mixer mixer = new Mixer(
+            numberOfInputs: 5 + 5, // number of mixer inputs (contexts)
+            numberOfWeightSets: 4 * 4 * 4 * 4, // model weights in 4*4*4*4 = 256 weight sets
+            learningRate: 0.02, // tunable parameter
+            scalingFactor: 0.3 // tunable parameter
+        ); 
 
         public void SetContexts()
         {
@@ -111,52 +112,39 @@ namespace BitCompressor
             Console.Write(
                 sharedState.bitpos +
                 String.Format(" w0={0:+#0.000;-#0.000; #0.000} w1={1:+#0.000;-#0.000; #0.000} w2={2:+#0.000;-#0.000; #0.000} w3={3:+#0.000;-#0.000; #0.000}   |  ", w0, w1, w2, w3) +
-                String.Format(" p0={0:0.000} p1={1:0.000} p2={2:0.000} p3={3:0.000} px={4:0.0000000} ", p0, p1, p2, p3, px)
+                String.Format(" p0={0:0.000} p1={1:0.000} p2={2:0.000} p3={3:0.000} px={4:0.0000000} ", p0, p1, p2, p3, mixer.px)
                 );
 
         }
         public double p()
         {
-            selectedWeightSet =
+            int selectedWeightSet =
                 stats1[contexts[1]].StatCertainty << 0 |
                 stats2[contexts[2]].StatCertainty << 2 |
                 stats3[contexts[3]].StatCertainty << 4 |
                 stats4[contexts[4]].StatCertainty << 6; //select one from the 256 weight sets
 
-            double dotProduct = 0.0;
+            mixer.SetSelectedWeigthSet(selectedWeightSet);
+
             for (int i = 0; i < 5; i++)
             {
                 var stat = stats[i][contexts[i]];
                 var p = stat.p; //p range: 0.0 .. 0.5 .. 1.0, excluding the ends (0.0 and 1.0)
-                var d = MixerFunctions.Stretch(p); // typical d range: -8.3 .. 0.0 .. +8.3 when p is between 1/4096 and 4095/4096 
-                var w = weights[selectedWeightSet, i];
-                dotProduct += (w * d);
-                stretchedInputs[i] = d;
+                mixer.SetInput(i, p);
 
                 var state = states[i][contexts[i]];
                 var stateMap = stateMaps[i];
                 p = stateMap.p(state);
-                d = MixerFunctions.Stretch(p);
-                w = weights[selectedWeightSet, i + 5];
-                dotProduct += (w * d);
-                stretchedInputs[i + 5] = d;
+                mixer.SetInput(i + 5, p);
             }
 
-            const double scalingFactor = 0.3; //tunable parameter
-            dotProduct *= scalingFactor;
-            px = MixerFunctions.Squash(dotProduct);
+            //predict next bit: get its probability by mixing contextual probabilities
+            double px = mixer.p();
 
             //uncomment the following line to print state bit by bit
             //printState(sharedState, p0, p1, p2, p3, w0, w1, w2, w3);
 
             return px;
-        }
-
-        private static double Clip(double x)
-        {
-            if (x < -16.0) return -16.0;
-            if (x > +16.0) return +16.0;
-            return x;
         }
 
         public void UpdateModel(uint bit)
@@ -177,29 +165,15 @@ namespace BitCompressor
                 tokenHash = tokenHash.Hash(c1);
             }
 
-            //update mixing weights
-
-            var error = bit - px; //target probability vs predicted probability
-
-            const double learningRate = 0.02; //tunable parameter
-
+            // update context statistics
             for (int i = 0; i < 5; i++)
             {
-                var d = stretchedInputs[i];
-                var w = weights[selectedWeightSet, i];
-                w += d * error * learningRate; //the larger the error - the larger of the weight change
-                weights[selectedWeightSet, i] = Clip(w);
                 stats[i][contexts[i]].Update(bit, adaptationRate: 1.0f);
-            }
-
-            for (int i = 0; i < 5; i++)
-            {
-                var d = stretchedInputs[i + 5];
-                var w = weights[selectedWeightSet, i + 5];
-                w += d * error * learningRate; //the larger the error - the larger of the weight change
-                weights[selectedWeightSet, i + 5] = Clip(w);
                 stateMaps[i].Update(ref states[i][contexts[i]], bit);
             }
+
+            // update mixing weights
+            mixer.Update(bit);
         }
     }
 }

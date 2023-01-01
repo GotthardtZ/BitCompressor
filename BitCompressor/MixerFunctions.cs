@@ -15,5 +15,12 @@ namespace BitCompressor
         {
             return 1.0 / (1.0 + Math.Exp(-d));
         }
+
+        public static double Clip(double x)
+        {
+            if (x < -16.0) return -16.0;
+            if (x > +16.0) return +16.0;
+            return x;
+        }
     }
 }
