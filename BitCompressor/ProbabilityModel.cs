@@ -58,7 +58,8 @@ namespace BitCompressor
 
         Mixer mixer = new Mixer(
             numberOfInputs: 5 + 5, // number of mixer inputs (contexts)
-            numberOfWeightSets: 4 * 4 * 4 * 4, // model weights in 4*4*4*4 = 256 weight sets
+            numberOfSelectedWeightSets: 1,
+            numberOfAllWeightSets: 4 * 4 * 4 * 4, // model weights in 4*4*4*4 = 256 weight sets
             learningRate: 0.02, // tunable parameter
             scalingFactor: 0.3 // tunable parameter
         ); 
@@ -124,7 +125,7 @@ namespace BitCompressor
                 stats3[contexts[3]].StatCertainty << 4 |
                 stats4[contexts[4]].StatCertainty << 6; //select one from the 256 weight sets
 
-            mixer.SetSelectedWeigthSet(selectedWeightSet);
+            mixer.SetSelectedWeigthSet(0, selectedWeightSet);
 
             for (int i = 0; i < 5; i++)
             {
@@ -139,7 +140,8 @@ namespace BitCompressor
             }
 
             //predict next bit: get its probability by mixing contextual probabilities
-            double px = mixer.p();
+            mixer.Mix();
+            double px = mixer.px[0];
 
             //uncomment the following line to print state bit by bit
             //printState(sharedState, p0, p1, p2, p3, w0, w1, w2, w3);
