@@ -58,12 +58,19 @@ namespace BitCompressor
 
         Mixer mixer = new Mixer(
             numberOfInputs: 5 + 5, // number of mixer inputs (contexts)
-            numberOfSelectedWeightSets: 1,
-            numberOfAllWeightSets: 4 * 4 * 4 * 4, // model weights in 4*4*4*4 = 256 weight sets
+            numberOfSelectedWeightSets: 4,
+            numberOfAllWeightSets: (1) + (4 * 4 * 4 * 4) + 255 + (256 * 8), // model weights
             learningRate: 0.02, // tunable parameter
             scalingFactor: 0.3 // tunable parameter
-        ); 
+        );
 
+        Mixer secondMixer = new Mixer(
+            numberOfInputs: 4, // inputs coming from the first mixer layer
+            numberOfSelectedWeightSets: 1, // as the last layer it has a single weight set
+            numberOfAllWeightSets: 1, // as the last layer it has a single weight set
+            learningRate: 0.01, // tunable parameter
+            scalingFactor: 0.3 // tunable parameter
+        );
         public void SetContexts()
         {
             uint c0 = sharedState.c0;
@@ -119,13 +126,27 @@ namespace BitCompressor
         }
         public double p()
         {
-            int selectedWeightSet =
+            int selectedWeightSet0 = 0;
+
+            int selectedWeightSet1 =
                 stats1[contexts[1]].StatCertainty << 0 |
                 stats2[contexts[2]].StatCertainty << 2 |
                 stats3[contexts[3]].StatCertainty << 4 |
-                stats4[contexts[4]].StatCertainty << 6; //select one from the 256 weight sets
+                stats4[contexts[4]].StatCertainty << 6; //select one from the 4*4*4*4 = 256 weight sets
 
-            mixer.SetSelectedWeigthSet(0, selectedWeightSet);
+            int selectedWeightSet2 = this.sharedState.c0 - 1; //select one from the 255 weight sets
+
+            int selectedWeightSet3 = this.sharedState.c1 << 3 | sharedState.bitpos; //select one from the 256*8 weight sets
+
+            const int base0 = 0;
+            const int base1 = 0 + 1;
+            const int base2 = 0 + 1 + 256;
+            const int base3 = 0 + 1 + 256 + 255;
+
+            mixer.SetSelectedWeigthSet(0, base0 + selectedWeightSet0);
+            mixer.SetSelectedWeigthSet(1, base1 + selectedWeightSet1);
+            mixer.SetSelectedWeigthSet(2, base2 + selectedWeightSet2);
+            mixer.SetSelectedWeigthSet(3, base3 + selectedWeightSet3);
 
             for (int i = 0; i < 5; i++)
             {
@@ -141,7 +162,9 @@ namespace BitCompressor
 
             //predict next bit: get its probability by mixing contextual probabilities
             mixer.Mix();
-            double px = mixer.px[0];
+            mixer.FeedForwardTo(secondMixer);
+            secondMixer.Mix();
+            double px = secondMixer.px[0];
 
             //uncomment the following line to print state bit by bit
             //printState(sharedState, p0, p1, p2, p3, w0, w1, w2, w3);
@@ -176,6 +199,7 @@ namespace BitCompressor
 
             // update mixing weights
             mixer.Update(bit);
+            secondMixer.Update(bit);
         }
     }
 }
