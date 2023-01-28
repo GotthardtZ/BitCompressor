@@ -37,12 +37,13 @@
         {
             for (int s = 0; s < px.Length; s++)
             {
+                var selectedWeightSet = selectedWeightSets[s];
+
                 double dotProduct = 0.0;
 
                 for (int i = 0; i < stretchedInputs.Length; i++)
                 {
                     var d = stretchedInputs[i];
-                    var selectedWeightSet = selectedWeightSets[s];
                     var w = weights[selectedWeightSet, i];
                     dotProduct += (w * d);
                 }
@@ -66,12 +67,13 @@
         {
             for (int s = 0; s < px.Length; s++)
             {
+                var selectedWeightSet = selectedWeightSets[s];
+
                 var error = bit - px[s]; // target value (0 or 1) vs predicted probability (0..1)
 
                 for (int i = 0; i < stretchedInputs.Length; i++)
                 {
                     var d = stretchedInputs[i];
-                    var selectedWeightSet = selectedWeightSets[s];
                     var w = weights[selectedWeightSet, i];
                     w += d * error * learningRate; // weight update rule for logistic regression
                     weights[selectedWeightSet, i] = MixerFunctions.Clip(w);
